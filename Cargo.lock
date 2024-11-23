@@ -1134,9 +1134,9 @@ dependencies = [
  "font-kit",
  "image",
  "lazy_static",
- "once_cell",
  "reqwest",
  "tokio",
+ "winit",
 ]
 
 [[package]]

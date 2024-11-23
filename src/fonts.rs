@@ -1,5 +1,5 @@
-use std::sync::Mutex;
 use lazy_static::lazy_static;
+use std::sync::Mutex;
 
 // 添加图标缓存
 lazy_static! {

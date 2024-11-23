@@ -1,13 +1,12 @@
-#![cfg_attr(
-    not(debug_assertions),
-    windows_subsystem = "windows"
-)] // hide console window on Windows in release
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 #![allow(rustdoc::missing_crate_level_docs)]
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 
-use eframe::egui;
+use eframe::EventLoopBuilderHook;
+use eframe::{egui, NativeOptions};
 use egui::IconData;
+use winit::platform::windows::EventLoopBuilderExtWindows;
 
 use fonts::init_fonts;
 pub use icon::{load_icon_from_bytes, load_icon_from_path, load_icon_from_url};
@@ -27,12 +26,13 @@ pub struct DialogParams {
 unsafe impl Send for DialogParams {}
 
 impl DialogParams {
-    pub fn create(icon_data: Option<IconData>,
-                  title: Option<String>,
-                  content: Option<String>,
-                  window_size: Option<[f32; 2]>,
-                  confirm_button_text: Option<String>,
-                  cancel_button_text: Option<String>,
+    pub fn create(
+        icon_data: Option<IconData>,
+        title: Option<String>,
+        content: Option<String>,
+        window_size: Option<[f32; 2]>,
+        confirm_button_text: Option<String>,
+        cancel_button_text: Option<String>,
     ) -> Self {
         let icon_data = icon_data.unwrap_or(IconData::default());
         let title = title.unwrap_or("Shit is on fire!".to_string());
@@ -55,7 +55,6 @@ impl DialogParams {
         }
     }
 }
-
 
 struct InputDialog {
     heading_text: String,
@@ -121,7 +120,6 @@ impl eframe::App for ConfirmDialog {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading(&self.heading_text);
 
-
             ui.horizontal(|ui| {
                 if ui.button(&self.dialog_params.confirm_button_text).clicked() {
                     self.tx.send(true).unwrap();
@@ -137,9 +135,15 @@ impl eframe::App for ConfirmDialog {
 }
 
 pub fn show_dialog<T: eframe::App + 'static>(dialog_params: DialogParams, dialog: T) {
+    let event_loop_builder: Option<EventLoopBuilderHook> = Some(Box::new(|event_loop_builder| {
+        event_loop_builder.with_any_thread(true);
+    }));
     let _ = eframe::run_native(
         &dialog_params.title,
-        dialog_params.options,
+        NativeOptions {
+            event_loop_builder,
+            ..dialog_params.options
+        },
         Box::new(|cc| {
             let fonts = init_fonts();
             cc.egui_ctx.set_fonts(fonts);
@@ -147,18 +151,21 @@ pub fn show_dialog<T: eframe::App + 'static>(dialog_params: DialogParams, dialog
             Ok(Box::new(dialog))
         }),
     );
+    return;
 }
 pub async fn confirm(dialog_params: DialogParams) -> bool {
     let (tx, rx) = mpsc::channel::<bool>();
     let dialog_params_clone = dialog_params.clone();
     let dialog = ConfirmDialog::new(&dialog_params.content, tx, dialog_params_clone);
-    show_dialog::<ConfirmDialog>(dialog_params, dialog);
-    match rx.try_recv() {
+
+    std::thread::spawn(move || {
+        show_dialog::<ConfirmDialog>(dialog_params, dialog);
+    });
+
+    // 等待结果
+    match rx.recv() {
         Ok(result) => result,
-        Err(e) => {
-            println!("error: {}", e);
-            false
-        },
+        Err(_) => false,
     }
 }
 
@@ -166,12 +173,14 @@ pub async fn input(dialog_params: DialogParams) -> String {
     let (tx, rx) = mpsc::channel::<String>();
     let dialog_params_clone = dialog_params.clone();
     let dialog = InputDialog::new(&dialog_params.content, "ok", tx, dialog_params_clone);
-    show_dialog::<InputDialog>(dialog_params, dialog);
-    match rx.try_recv() {
+
+    std::thread::spawn(move || {
+        show_dialog::<InputDialog>(dialog_params, dialog);
+    });
+
+    // 等待结果
+    match rx.recv() {
         Ok(result) => result,
-        Err(e) => {
-            println!("error: {}", e);
-            String::new()
-        },
+        Err(_) => String::new(),
     }
 }

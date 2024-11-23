@@ -15,7 +15,7 @@ pub async fn load_icon_from_url(url: &str) -> egui::IconData {
             }
         } else {
             egui::IconData::default()
-        }
+        };
     }
     egui::IconData::default()
 }
