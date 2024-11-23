@@ -1,0 +1,38 @@
+[package]
+name = "egui_messagebox"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["inintencunter <2911583893@qq.com>"]
+include = [
+    "readme.md",
+    "resouces",
+    "src",
+    "Cargo.toml",
+]
+description = "A super-easy, cross-platform, and flexible message box for eframe/egui."
+homepage = "https://github.com/initialencounter/egui-messagebox"
+readme = "readme.md"
+keywords = [
+    "dialog",
+    "messagebox",
+    "egui",
+    "eframe",
+]
+license = "AGPL-3.0"
+repository = "https://github.com/initialencounter/egui-messagebox"
+
+[[example]]
+name = "input"
+path = "examples/input.rs"
+
+[dependencies]
+eframe = { version = "0.29.1", features = ["default", "__screenshot"] }
+egui = "0.29.1"
+image = "0.25.5"
+egui_extras = { version = "0.29.1", features = ["default", "image"] }
+font-kit = "0.14.2"
+reqwest = "0.12.9"
+tokio = { version = "1.0", features = ["full"] }
+lazy_static = "1.5.0"
+once_cell = "1.20.2"
